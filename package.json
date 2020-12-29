@@ -1,6 +1,6 @@
 {
   "name": "hamster-redux",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Entity manager backed by redux",
   "main": "src/index.js",
   "exports": {
