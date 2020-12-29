@@ -1,0 +1,25 @@
+{
+  "name": "hamster-redux",
+  "version": "0.0.1",
+  "description": "Entity manager backed by redux",
+  "main": "src/index.js",
+  "exports": {
+    "./": "./src/"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.cityads.com:a.mayants/hamster-redux.git"
+  },
+  "peerDependencies": {
+    "redux": "^3.6.0 || ^4.0.0"
+  },
+  "keywords": [
+    "redux",
+    "entity"
+  ],
+  "author": "Alex Mayants <a.mayants@cityads.team>",
+  "license": "ISC"
+}
