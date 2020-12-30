@@ -2,14 +2,21 @@ import { babel } from '@rollup/plugin-babel';
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 
+import pkg from './package.json'
+
 const config = {
   input: 'src/index.js',
   plugins: [
     babel({
-      babelHelpers: 'bundled'
+      babelHelpers: 'bundled',
+      exclude: 'node_modules/**'
     }),
     commonjs(),
     nodeResolve()
+  ],
+  external: [
+    ...Object.keys(pkg.dependencies),
+    ...Object.keys(pkg.peerDependencies),
   ],
 };
 
