@@ -1,4 +1,4 @@
-const FETCH_DEBOUNCE_TIME = 50;;
+const FETCH_DEBOUNCE_TIME = 50;
 
 const PRIVATE_PROPS = new WeakMap();
 
