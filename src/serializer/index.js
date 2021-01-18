@@ -11,7 +11,7 @@ export default class Serializer {
 
       if (!entity) { return null; }
 
-      return this.processEntity(typeName, payload);
+      return this.processEntity(typeName, entity);
     } else {
       const entities = payload[pluralize(typeName)] || payload[typeName];
 
