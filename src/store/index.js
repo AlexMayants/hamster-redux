@@ -18,12 +18,12 @@ export default class Store {
   loadEntityById(typeName, id, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
 
-    this.updateEntity(typeName, id, { id });
+    this.updateEntity(typeName, { id });
     this.notify(typeName, [id], UPDATE_ENTITY_DATA);
 
     return requestDispatcher.loadEntityById(typeName, id, options)
       .then(entity => {
-        this.updateEntity(typeName, entity.id, entity);
+        this.updateEntity(typeName, entity);
 
         this.notify(typeName, [id], UPDATE_ENTITY_DATA);
 
@@ -57,20 +57,34 @@ export default class Store {
   loadEntitiesByIds(typeName, ids, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
 
-    ids.forEach(id => {
-      this.updateEntity(typeName, id, { id });
-    });
+    this.updateEntities(typeName, ids.map(id => ({ id })));
     this.notify(typeName, ids, UPDATE_ENTITY_DATA);
 
-    return requestDispatcher.loadEntitiesByIds(typeName, ids, options)
-      .then(entities => {
-        entities.forEach(entity => {
-          this.updateEntity(typeName, entity.id, entity);
+    return Promise.allSettled(
+      ids.map(id => requestDispatcher.loadEntityById(typeName, id, options))
+    )
+      .then(results => {
+        const successfulEntities = [];
+        const failReasons = [];
+
+        results.forEach(result => {
+          if (result.status === 'fulfilled') {
+            successfulEntities.push(result.value);
+          } else {
+            failReasons.push(result.reason);
+          }
         });
 
-        this.notify(typeName, ids, UPDATE_ENTITY_DATA);
+        if (successfulEntities.length) {
+          this.updateEntities(typeName, successfulEntities);
+          this.notify(typeName, successfulEntities.map(entity => entity.id), UPDATE_ENTITY_DATA);
+        }
 
-        return entities;
+        if (failReasons.length > 0) {
+          throw failReasons[0];
+        }
+
+        return successfulEntities;
       })
       .catch(error => {
         this.logError(typeName, ids, options, error);
@@ -115,7 +129,7 @@ export default class Store {
     reduxStore.dispatch({
       type: REMOVE_ENTITY_DATA,
       typeName,
-      id,
+      ids: [id],
     });
     this.notify(typeName, [id], REMOVE_ENTITY_DATA);
   }
@@ -123,14 +137,11 @@ export default class Store {
   removeEntitiesByIds(typeName, ids) {
     const reduxStore = this._container.get('redux');
 
-    ids.forEach(id => {
-      reduxStore.dispatch({
-        type: REMOVE_ENTITY_DATA,
-        typeName,
-        id,
-      });
+    reduxStore.dispatch({
+      type: REMOVE_ENTITY_DATA,
+      typeName,
+      ids,
     });
-
     this.notify(typeName, ids, REMOVE_ENTITY_DATA);
   }
 
@@ -148,7 +159,7 @@ export default class Store {
     return requestDispatcher.query(typeName, params, options)
       .then(entities => {
         entities.forEach(entity => {
-          this.updateEntity(typeName, entity.id, entity);
+          this.updateEntity(typeName, entity);
         });
 
         this.notify(typeName, entities.map(entity => entity.id), UPDATE_ENTITY_DATA);
@@ -161,14 +172,17 @@ export default class Store {
     ;
   }
 
-  updateEntity(typeName, id, entity) {
+  updateEntity(typeName, entity) {
+    this.updateEntities(typeName, [entity]);
+  }
+
+  updateEntities(typeName, entities) {
     const reduxStore = this._container.get('redux');
 
     reduxStore.dispatch({
       type: UPDATE_ENTITY_DATA,
       typeName,
-      id,
-      entity,
+      data: entities,
     });
   }
 

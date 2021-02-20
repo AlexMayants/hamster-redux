@@ -38,12 +38,6 @@ export default class RequestDispatcher {
     });
   }
 
-  loadEntitiesByIds(typeName, ids, options) {
-    return Promise.all(
-      ids.map(id => this.loadEntityById(typeName, id, options))
-    );
-  }
-
   addPendingFetch(typeName, id, resolve, reject, options) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
 
