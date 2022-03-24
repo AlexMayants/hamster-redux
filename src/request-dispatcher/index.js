@@ -227,7 +227,7 @@ export default class RequestDispatcher {
     const adapter = this._container.getAdapterFor(typeName);
     const serializer = this._container.getSerializerFor(typeName);
 
-    adapter.query(typeName, params, options)
+    return adapter.query(typeName, params, options)
       .then(payload => serializer.processPayload(typeName, payload, false))
     ;
   }
