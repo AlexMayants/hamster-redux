@@ -2,9 +2,23 @@ import Transform from './transform';
 import { isNone } from '../utils';
 
 export default class NumberTransform extends Transform {
-  unserialize(data) {
-    if (isNone(data)) { return data; }
+  unserialize(serialized) {
+    if (isNone(serialized) || serialized === '') {
+      return null;
+    }
 
-    return Number(data);
+    const transformed = Number(serialized);
+
+    return isFinite(transformed) ? transformed : null;
+  }
+
+  serialize(unserialized) {
+    if (isNone(unserialized) || unserialized === '') {
+      return null;
+    }
+
+    const transformed = Number(unserialized);
+
+    return isFinite(transformed) ? transformed : null;
   }
 }

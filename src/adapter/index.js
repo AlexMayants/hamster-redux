@@ -2,6 +2,7 @@ import { stringify } from 'query-string';
 import { pluralize } from '../utils';
 
 const DEFAULT_CHUNK_SIZE = 20;
+const DEFAULT_CONTENT_TYPE = 'application/json; charset=utf-8';
 
 export default class Adapter {
   constructor(container) {
@@ -77,12 +78,48 @@ export default class Adapter {
     return this.request(url, 'GET', { queryParams: params }, options);
   }
 
-  getFetchOptions(url, method, params, options = {}) {
-    const { signal } = options
+  createEntity(typeName, data, options) {
+    const url = this.buildUrl(typeName);
 
-    return {
+    return this.request(url, 'POST', { body: data }, options);
+  }
+
+  updateEntity(typeName, data, options) {
+    const url = this.buildUrl(typeName, data.id);
+
+    return this.request(url, 'PUT', { body: data }, options);
+  }
+
+  deleteEntity(typeName, id, options) {
+    const url = this.buildUrl(typeName, id);
+
+    return this.request(url, 'DELETE', {}, options);
+  }
+
+  getFetchOptions(url, method, params, options = {}) {
+    const { body } = params;
+    const { signal, headers } = options
+
+    const fetchOptions = {
       signal,
+      headers,
     };
+
+    if (body && method !== 'GET' && method !== 'HEAD') {
+      fetchOptions.headers = fetchOptions.headers || {};
+
+      if (!fetchOptions.headers['Content-Type'] && !fetchOptions.headers['content-type']) {
+        fetchOptions.headers['content-type'] = DEFAULT_CONTENT_TYPE;
+      }
+
+      if (Object.prototype.toString.call(body) === '[object Object]') {
+        fetchOptions.body = JSON.stringify(body);
+      } else {
+        fetchOptions.body = body;
+      }
+    }
+
+    return fetchOptions;
   }
 
   request(url, method, params = {}, options) {

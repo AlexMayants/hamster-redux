@@ -3,7 +3,11 @@ export default class Transform {
     this._container = container;
   }
 
-  unserialize(data) {
-    return data;
+  unserialize(serialized) {
+    return serialized;
+  }
+
+  serialize(unserialized) {
+    return unserialized;
   }
 }

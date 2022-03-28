@@ -18,19 +18,20 @@ export default class Store {
   loadEntityById(typeName, id, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
 
-    this.updateEntity(typeName, { id });
+    this.updateStoreEntity(typeName, { id });
     this.notify(typeName, [id], UPDATE_ENTITY_DATA);
 
     return requestDispatcher.loadEntityById(typeName, id, options)
       .then(entity => {
-        this.updateEntity(typeName, entity);
-
+        this.updateStoreEntity(typeName, entity);
         this.notify(typeName, [id], UPDATE_ENTITY_DATA);
 
         return entity;
       })
       .catch(error => {
         this.logError(typeName, id, options, error);
+
+        throw error;
       })
     ;
   }
@@ -57,8 +58,7 @@ export default class Store {
   loadEntitiesByIds(typeName, ids, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
 
-    this.updateEntities(typeName, ids.map(id => ({ id })));
-    this.notify(typeName, ids, UPDATE_ENTITY_DATA);
+    this.updateStoreEntities(typeName, ids.map(id => ({ id })));
 
     return Promise.allSettled(
       ids.map(id => requestDispatcher.loadEntityById(typeName, id, options))
@@ -76,8 +76,7 @@ export default class Store {
         });
 
         if (successfulEntities.length) {
-          this.updateEntities(typeName, successfulEntities);
-          this.notify(typeName, successfulEntities.map(entity => entity.id), UPDATE_ENTITY_DATA);
+          this.updateStoreEntities(typeName, successfulEntities);
         }
 
         if (failReasons.length > 0) {
@@ -88,6 +87,8 @@ export default class Store {
       })
       .catch(error => {
         this.logError(typeName, ids, options, error);
+
+        throw error;
       })
     ;
   }
@@ -158,25 +159,92 @@ export default class Store {
 
     return requestDispatcher.query(typeName, params, options)
       .then(entities => {
-        entities.forEach(entity => {
-          this.updateEntity(typeName, entity);
-        });
-
-        this.notify(typeName, entities.map(entity => entity.id), UPDATE_ENTITY_DATA);
+        this.updateStoreEntities(typeName, entities);
 
         return entities;
       })
       .catch(error => {
         this.logError(typeName, params, options, error);
+
+        throw error;
       })
     ;
   }
 
-  updateEntity(typeName, entity) {
-    this.updateEntities(typeName, [entity]);
+  createEntity(typeName, data, options) {
+    const requestDispatcher = this._container.get('request-dispatcher');
+
+    return requestDispatcher.createEntity(typeName, data, options)
+      .then(entity => {
+        this.updateStoreEntity(typeName, entity);
+
+        return entity;
+      })
+      .catch(error => {
+        this.logError(typeName, data, options, error);
+
+        throw error;
+      })
+    ;
   }
 
-  updateEntities(typeName, entities) {
+  updateEntity(typeName, id, options) {
+    const entity = this.peekEntityById(typeName, id, options);
+
+    const requestDispatcher = this._container.get('request-dispatcher');
+
+    return new Promise((resolve, reject) => {
+      if (!entity) {
+        reject(new Error(`${typeName} with ID ${id} not found in store`));
+        return;
+      }
+
+      resolve(requestDispatcher.updateEntity(typeName, entity, options));
+    })
+      .then(entity => {
+        this.updateStoreEntity(typeName, entity);
+
+        return entity;
+      })
+      .catch(error => {
+        this.logError(typeName, id, options, error);
+
+        throw error;
+      })
+    ;
+  }
+
+  deleteEntity(typeName, id, options) {
+    const entity = this.peekEntityById(typeName, id, options);
+
+    const requestDispatcher = this._container.get('request-dispatcher');
+
+    return new Promise((resolve, reject) => {
+      if (!entity) {
+        reject(new Error(`${typeName} with ID ${id} not found in store`));
+        return;
+      }
+
+      resolve(requestDispatcher.deleteEntity(typeName, id, options));
+    })
+      .then(entity => {
+        this.removeEntityById(typeName, id);
+
+        return entity;
+      })
+      .catch(error => {
+        this.logError(typeName, id, options, error);
+
+        throw error;
+      })
+    ;
+  }
+
+  updateStoreEntity(typeName, entity) {
+    this.updateStoreEntities(typeName, [entity]);
+  }
+
+  updateStoreEntities(typeName, entities) {
     const reduxStore = this._container.get('redux');
 
     reduxStore.dispatch({
@@ -184,6 +252,8 @@ export default class Store {
       typeName,
       data: entities,
     });
+
+    this.notify(typeName, entities.map(entity => entity.id), UPDATE_ENTITY_DATA);
   }
 
   subscribe(typeName, callback) {

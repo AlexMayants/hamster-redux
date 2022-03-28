@@ -182,7 +182,7 @@ export default class RequestDispatcher {
       const singleId = ids[0];
 
       adapter.findEntity(typeName, singleId, combinedOptions)
-        .then(payload => serializer.processPayload(typeName, payload, true))
+        .then(payload => serializer.unserializePayload(typeName, payload, true))
         .then(entity => {
           if (entity.id !== singleId) {
             this.rejectPendingFetch(typeName, singleId, new Error(`Expected single ${typeName} with ID ${singleId}`));
@@ -196,7 +196,7 @@ export default class RequestDispatcher {
       ;
     } else {
       adapter.findEntities(typeName, ids, combinedOptions)
-        .then(payload => serializer.processPayload(typeName, payload, false))
+        .then(payload => serializer.unserializePayload(typeName, payload, false))
         .then(entities => {
           const loadedById = new Map();
 
@@ -228,7 +228,35 @@ export default class RequestDispatcher {
     const serializer = this._container.getSerializerFor(typeName);
 
     return adapter.query(typeName, params, options)
-      .then(payload => serializer.processPayload(typeName, payload, false))
+      .then(payload => serializer.unserializePayload(typeName, payload, false))
     ;
+  }
+
+  createEntity(typeName, data, options) {
+    const adapter = this._container.getAdapterFor(typeName);
+    const serializer = this._container.getSerializerFor(typeName);
+
+    const payload = serializer.serializePayload(typeName, data);
+
+    return adapter.createEntity(typeName, payload, options)
+      .then(payload => serializer.unserializePayload(typeName, payload, false))
+    ;
+  }
+
+  updateEntity(typeName, data, options) {
+    const adapter = this._container.getAdapterFor(typeName);
+    const serializer = this._container.getSerializerFor(typeName);
+
+    const payload = serializer.serializePayload(typeName, data);
+
+    return adapter.updateEntity(typeName, payload, options)
+      .then(payload => serializer.unserializePayload(typeName, payload, false))
+    ;
+  }
+
+  deleteEntity(typeName, id, options) {
+    const adapter = this._container.getAdapterFor(typeName);
+
+    return adapter.deleteEntity(typeName, id, options);
   }
 }
