@@ -5,7 +5,7 @@ export default class Serializer {
     this._container = container;
   }
 
-  processPayload(typeName, payload, isSingle) {
+  unserializePayload(typeName, payload, isSingle) {
     if (isSingle) {
       const entity = payload[typeName] || payload[pluralize(typeName)];
 
