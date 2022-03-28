@@ -84,8 +84,8 @@ export default class Adapter {
     return this.request(url, 'POST', { body: data }, options);
   }
 
-  updateEntity(typeName, data, options) {
-    const url = this.buildUrl(typeName, data.id);
+  updateEntity(typeName, id, data, options) {
+    const url = this.buildUrl(typeName, id);
 
     return this.request(url, 'PUT', { body: data }, options);
   }

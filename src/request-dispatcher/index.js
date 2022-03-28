@@ -249,7 +249,7 @@ export default class RequestDispatcher {
 
     const payload = serializer.serializePayload(typeName, data);
 
-    return adapter.updateEntity(typeName, payload, options)
+    return adapter.updateEntity(typeName, data.id, payload, options)
       .then(payload => serializer.unserializePayload(typeName, payload, false))
     ;
   }

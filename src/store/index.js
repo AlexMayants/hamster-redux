@@ -227,10 +227,8 @@ export default class Store {
 
       resolve(requestDispatcher.deleteEntity(typeName, id, options));
     })
-      .then(entity => {
+      .then(() => {
         this.removeEntityById(typeName, id);
-
-        return entity;
       })
       .catch(error => {
         this.logError(typeName, id, options, error);
