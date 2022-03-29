@@ -42,6 +42,10 @@ export default class Serializer {
     return result;
   }
 
+  unserializeMeta(typeName, payload) {
+    return payload?.meta;
+  }
+
   serializePayload(typeName, payload) {
     if (!payload) { return null; }
 

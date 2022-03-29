@@ -228,7 +228,13 @@ export default class RequestDispatcher {
     const serializer = this._container.getSerializerFor(typeName);
 
     return adapter.query(typeName, params, options)
-      .then(payload => serializer.unserializePayload(typeName, payload, false))
+      .then(payload => {
+        let result = serializer.unserializePayload(typeName, payload, false);
+
+        result.meta = serializer.unserializeMeta(typeName, payload);
+
+        return result;
+      })
     ;
   }
 
@@ -239,7 +245,7 @@ export default class RequestDispatcher {
     const payload = serializer.serializePayload(typeName, data);
 
     return adapter.createEntity(typeName, payload, options)
-      .then(payload => serializer.unserializePayload(typeName, payload, false))
+      .then(payload => serializer.unserializePayload(typeName, payload, true))
     ;
   }
 
@@ -250,7 +256,7 @@ export default class RequestDispatcher {
     const payload = serializer.serializePayload(typeName, data);
 
     return adapter.updateEntity(typeName, data.id, payload, options)
-      .then(payload => serializer.unserializePayload(typeName, payload, false))
+      .then(payload => serializer.unserializePayload(typeName, payload, true))
     ;
   }
 
