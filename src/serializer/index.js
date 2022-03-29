@@ -57,11 +57,13 @@ export default class Serializer {
   serializeEntity(typeName, entity) {
     const schema = this._container.getSchemaFor(typeName);
 
+    const result = {};
+
     let id = entity?.id;
 
-    if (!id) { return null; }
-
-    const result = { id };
+    if (id) {
+      result.id = id;
+    }
 
     if (schema) {
       Object.entries(schema).forEach(([ key, fieldTypeName ]) => {
