@@ -3,6 +3,7 @@ import { pluralize } from '../utils';
 
 const DEFAULT_CHUNK_SIZE = 20;
 const DEFAULT_CONTENT_TYPE = 'application/json; charset=utf-8';
+const HTTP_EMPTY_RESPONSE_STATUSES = [204];
 
 export default class Adapter {
   constructor(container) {
@@ -139,7 +140,11 @@ export default class Adapter {
         if (!response.ok) {
           const error = new Error(response.statusText);
           error.response = response;
-          throw error;          
+          throw error;
+        }
+
+        if (HTTP_EMPTY_RESPONSE_STATUSES.includes(response.status)) {
+          return response.text()
         }
 
         return response.json();
