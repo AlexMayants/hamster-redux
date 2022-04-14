@@ -147,7 +147,7 @@ export default class Adapter {
         }
 
         if (HTTP_EMPTY_RESPONSE_STATUSES.includes(response.status)) {
-          return response.text()
+          return null;
         }
 
         return response.json();
