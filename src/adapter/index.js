@@ -4,6 +4,10 @@ import { pluralize } from '../utils';
 const DEFAULT_CHUNK_SIZE = 20;
 const DEFAULT_CONTENT_TYPE = 'application/json; charset=utf-8';
 
+const HTTP_STATUS_NO_CONTENT = 204
+
+const HTTP_EMPTY_RESPONSE_STATUSES = [HTTP_STATUS_NO_CONTENT];
+
 export default class Adapter {
   constructor(container) {
     this._container = container;
@@ -139,7 +143,11 @@ export default class Adapter {
         if (!response.ok) {
           const error = new Error(response.statusText);
           error.response = response;
-          throw error;          
+          throw error;
+        }
+
+        if (HTTP_EMPTY_RESPONSE_STATUSES.includes(response.status)) {
+          return null;
         }
 
         return response.json();
