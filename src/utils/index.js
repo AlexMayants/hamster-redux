@@ -9,3 +9,7 @@ export function pluralize(str) {
 export function isNone(value) {
   return value === null || value === undefined;
 }
+
+export function isEmpty(value) {
+  return value === null || value === undefined || value === '' || (Array.isArray(value) && value.length === 0);
+}

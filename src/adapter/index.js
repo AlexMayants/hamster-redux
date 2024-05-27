@@ -52,7 +52,15 @@ export default class Adapter {
     }
 
     if (id) {
-      url.push(encodeURIComponent(id));
+      const schema = this._container.getSchemaFor(typeName);
+
+      if (schema) {
+        const transform = this._container.getTransformFor(schema.id);
+
+        if (transform) {
+          url.push(encodeURIComponent(transform.normalizeId(id)));
+        }
+      }
     }
 
     url = url.join('/');

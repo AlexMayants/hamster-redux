@@ -2,7 +2,7 @@ import Adapter from '../adapter';
 import RequestDispatcher from '../request-dispatcher';
 import Serializer from '../serializer';
 import Store from '../store';
-import Transform, { NumberTransform, StringTransform, BooleanTransform } from '../transform';
+import Transform, { IdCapableTransform, NumberTransform, StringTransform, BooleanTransform } from '../transform';
 
 const PRIVATE_PROPS = new WeakMap();
 
@@ -81,6 +81,14 @@ export default class Container {
 
     if (Serializer) {
       this.registerFactory(`serializer:${typeName}`, Serializer);
+    }
+
+    if (!schema.id) {
+      throw new Error(`${typeName} field is missing`);
+    }
+
+    if (!(this.getTransformFor(schema.id) instanceof IdCapableTransform)) {
+      throw new Error(`Invalid transform for ${typeName}::id`);
     }
 
     this.registerValue(`schema:${typeName}`, schema);

@@ -12,24 +12,25 @@ export default class Store {
     const state = reduxStore.getState();
     const entitesById = state[reducer]?.[typeName] || {};
 
-    return entitesById[id] ?? null;
+    return entitesById[this.normalizeId(typeName, id)] ?? null;
   }
 
   loadEntityById(typeName, id, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
+    const unserializedId = this.unserializeId(typeName, id);
 
-    this.updateStoreEntity(typeName, { id });
-    this.notify(typeName, [id], UPDATE_ENTITY_DATA);
+    this.updateStoreEntity(typeName, { id: unserializedId });
+    this.notify(typeName, [unserializedId], UPDATE_ENTITY_DATA);
 
-    return requestDispatcher.loadEntityById(typeName, id, options)
+    return requestDispatcher.loadEntityById(typeName, unserializedId, options)
       .then(entity => {
         this.updateStoreEntity(typeName, entity);
-        this.notify(typeName, [id], UPDATE_ENTITY_DATA);
+        this.notify(typeName, [unserializedId], UPDATE_ENTITY_DATA);
 
         return entity;
       })
       .catch(error => {
-        this.logError(typeName, id, options, error);
+        this.logError(typeName, unserializedId, options, error);
 
         throw error;
       })
@@ -52,16 +53,17 @@ export default class Store {
     const state = reduxStore.getState();
     const entitesById = state[reducer]?.[typeName] || {};
 
-    return ids.map(id => entitesById[id] ?? null).filter(entity => !!entity);
+    return ids.map(id => entitesById[this.normalizeId(typeName, id)] ?? null).filter(entity => !!entity);
   }
 
   loadEntitiesByIds(typeName, ids, options) {
     const requestDispatcher = this._container.get('request-dispatcher');
+    const unserializedIds = ids.map(id => this.unserializeId(typeName, id));
 
-    this.updateStoreEntities(typeName, ids.map(id => ({ id })));
+    this.updateStoreEntities(typeName, unserializedIds.map(id => ({ id })));
 
     return Promise.allSettled(
-      ids.map(id => requestDispatcher.loadEntityById(typeName, id, options))
+      unserializedIds.map(id => requestDispatcher.loadEntityById(typeName, id, options))
     )
       .then(results => {
         const successfulEntities = [];
@@ -86,7 +88,7 @@ export default class Store {
         return successfulEntities;
       })
       .catch(error => {
-        this.logError(typeName, ids, options, error);
+        this.logError(typeName, unserializedIds, options, error);
 
         throw error;
       })
@@ -94,8 +96,9 @@ export default class Store {
   }
 
   findEntitiesByIds(typeName, ids, options) {
+    const unserializedIds = ids.map(id => this.unserializeId(typeName, id));
     const existingEntities = this.peekEntitiesByIds(typeName, ids, options);
-    const allIds = new Set(ids);
+    const allIds = new Set(unserializedIds);
     const existingIds = new Set(existingEntities.map(entity => entity.id));
 
     if (existingIds.size === allIds.size) {
@@ -126,24 +129,29 @@ export default class Store {
 
   removeEntityById(typeName, id) {
     const reduxStore = this._container.get('redux');
+    const normalizedId = this.normalizeId(typeName, id);
+    const unserializedId = this.unserializeId(typeName, id);
 
     reduxStore.dispatch({
       type: REMOVE_ENTITY_DATA,
       typeName,
-      ids: [id],
+      ids: [normalizedId],
     });
-    this.notify(typeName, [id], REMOVE_ENTITY_DATA);
+    this.notify(typeName, [unserializedId], REMOVE_ENTITY_DATA);
   }
 
   removeEntitiesByIds(typeName, ids) {
+    const normalizedIds = ids.map(id => this.normalizeId(typeName, id));
+    const unserializedIds = ids.map(id => this.unserializeId(typeName, id));
+
     const reduxStore = this._container.get('redux');
 
     reduxStore.dispatch({
       type: REMOVE_ENTITY_DATA,
       typeName,
-      ids,
+      normalizedIds,
     });
-    this.notify(typeName, ids, REMOVE_ENTITY_DATA);
+    this.notify(typeName, unserializedIds, REMOVE_ENTITY_DATA);
   }
 
   removeAllEntities(typeName) {
@@ -151,7 +159,6 @@ export default class Store {
     const allIds = allEntities.map(entity => entity.id);
 
     this.removeEntitiesByIds(typeName, allIds);
-    this.notify(typeName, allIds, REMOVE_ENTITY_DATA);
   }
 
   query(typeName, params, options) {
@@ -225,7 +232,7 @@ export default class Store {
         return;
       }
 
-      resolve(requestDispatcher.deleteEntity(typeName, id, options));
+      resolve(requestDispatcher.deleteEntity(typeName, entity.id, options));
     })
       .then(() => {
         this.removeEntityById(typeName, id);
@@ -276,5 +283,33 @@ export default class Store {
 
   logError(typeName, params, options, error) {
     console.error(typeName, params, options, error);
+  }
+
+  normalizeId(typeName, id) {
+    const schema = this._container.getSchemaFor(typeName);
+
+    if (!schema) {
+      throw new Error(`Unknown entity type ${typeName}`);
+    }
+
+    const transform = this._container.getTransformFor(schema.id);
+
+    if (!transform.normalizeId) {
+      throw new Error(`Invalid transform for ${typeName}::id`);
+    }
+
+    return transform.normalizeId(id);
+  }
+
+  unserializeId(typeName, id) {
+    const schema = this._container.getSchemaFor(typeName);
+
+    if (!schema) {
+      throw new Error(`Unknown entity type ${typeName}`);
+    }
+
+    const transform = this._container.getTransformFor(schema.id);
+
+    return transform.unserialize(id);
   }
 }

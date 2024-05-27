@@ -1,7 +1,7 @@
-import Transform from './transform';
+import IdCapableTransform from './id-capable-transform';
 import { isNone } from '../utils';
 
-export default class NumberTransform extends Transform {
+export default class NumberTransform extends IdCapableTransform {
   unserialize(serialized) {
     if (isNone(serialized) || serialized === '') {
       return null;

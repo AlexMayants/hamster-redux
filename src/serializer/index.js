@@ -1,4 +1,4 @@
-import { pluralize } from '../utils';
+import { isEmpty, pluralize } from '../utils';
 
 export default class Serializer {
   constructor(container) {
@@ -24,11 +24,7 @@ export default class Serializer {
   unserializeEntity(typeName, entity) {
     const schema = this._container.getSchemaFor(typeName);
 
-    let id = entity?.id;
-
-    if (!id) { return null; }
-
-    const result = { id };
+    const result = {};
 
     if (schema) {
       Object.entries(schema).forEach(([ key, fieldTypeName ]) => {
@@ -38,6 +34,8 @@ export default class Serializer {
         result[key] = value;
       });
     }
+
+    if (isEmpty(result.id)) { return null; }
 
     return result;
   }
@@ -59,12 +57,6 @@ export default class Serializer {
 
     const result = {};
 
-    let id = entity?.id;
-
-    if (id) {
-      result.id = id;
-    }
-
     if (schema) {
       Object.entries(schema).forEach(([ key, fieldTypeName ]) => {
         const transform = this._container.getTransformFor(fieldTypeName);
@@ -72,6 +64,10 @@ export default class Serializer {
 
         result[key] = value;
       });
+    }
+
+    if (isEmpty(result.id)) {
+      delete result.id;
     }
 
     return result;
