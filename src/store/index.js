@@ -149,7 +149,7 @@ export default class Store {
     reduxStore.dispatch({
       type: REMOVE_ENTITY_DATA,
       typeName,
-      normalizedIds,
+      ids: normalizedIds,
     });
     this.notify(typeName, unserializedIds, REMOVE_ENTITY_DATA);
   }

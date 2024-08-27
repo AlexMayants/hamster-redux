@@ -3,7 +3,7 @@ export function pluralize(str) {
     return `${str}es`;
   }
 
-  return `${str}s`;  
+  return `${str}s`;
 }
 
 export function isNone(value) {
