@@ -3,15 +3,15 @@ const FETCH_DEBOUNCE_TIME = 50;
 const PRIVATE_PROPS = new WeakMap();
 
 function initPrivateProps(obj) {
-  PRIVATE_PROPS.set(obj, {});
+  PRIVATE_PROPS.set(obj, new Map());
 }
 
 function getPrivateProp(obj, name) {
-  return PRIVATE_PROPS.get(obj)[name];
+  return PRIVATE_PROPS.get(obj).get(name);
 }
 
 function setPrivateProp(obj, name, value) {
-  PRIVATE_PROPS.get(obj)[name] = value;
+  PRIVATE_PROPS.get(obj).set(name, value);
 }
 
 export default class RequestDispatcher {
@@ -19,8 +19,8 @@ export default class RequestDispatcher {
     this._container = container;
 
     initPrivateProps(this);
-    setPrivateProp(this, 'debounceTimeoutsByTypeName', {});
-    setPrivateProp(this, 'pendingFetchesByTypeName', {});
+    setPrivateProp(this, 'debounceTimeoutsByTypeName', new Map());
+    setPrivateProp(this, 'pendingFetchesByTypeName', new Map());
   }
 
   loadEntityById(typeName, id, options = {}) {
@@ -41,53 +41,51 @@ export default class RequestDispatcher {
   addPendingFetch(typeName, id, resolve, reject, options) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
 
-    if (!pendingFetchesByTypeName[typeName]) {
-      pendingFetchesByTypeName[typeName] = {};
+    if (!pendingFetchesByTypeName.has(typeName)) {
+      pendingFetchesByTypeName.set(typeName, new Map());
     }
 
-    if (!pendingFetchesByTypeName[typeName][id]) {
-      pendingFetchesByTypeName[typeName][id] = {
+    if (!pendingFetchesByTypeName.get(typeName).has(id)) {
+      pendingFetchesByTypeName.get(typeName).set(id, {
         resolves: [],
         rejects : [],
         options : [],
-      };
+      });
     }
 
-    pendingFetchesByTypeName[typeName][id].resolves.push(resolve);
-    pendingFetchesByTypeName[typeName][id].rejects.push(reject);
-    pendingFetchesByTypeName[typeName][id].options.push(options);
+    pendingFetchesByTypeName.get(typeName).get(id).resolves.push(resolve);
+    pendingFetchesByTypeName.get(typeName).get(id).rejects.push(reject);
+    pendingFetchesByTypeName.get(typeName).get(id).options.push(options);
   }
 
   resolvePendingFetch(typeName, id, data) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
-    const pendingFetch = pendingFetchesByTypeName[typeName]?.[id];
+    const pendingFetch = pendingFetchesByTypeName.get(typeName)?.get(id);
 
     if (pendingFetch) {
       pendingFetch.resolves.forEach(resolve => resolve(data));
-      delete pendingFetchesByTypeName[typeName][id];
+      pendingFetchesByTypeName.get(typeName).delete(id);
     }
   }
 
   rejectPendingFetch(typeName, id, reason) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
-    const pendingFetch = pendingFetchesByTypeName[typeName]?.[id];
+    const pendingFetch = pendingFetchesByTypeName.get(typeName)?.get(id);
 
     if (pendingFetch) {
       pendingFetch.rejects.forEach(reject => reject(reason));
-      delete pendingFetchesByTypeName[typeName][id];
+      pendingFetchesByTypeName.get(typeName).delete(id);
     }
   }
 
   rejectAllPendingFetches(typeName, reason) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
-    const pendingFetchesById = pendingFetchesByTypeName[typeName] ?? {};
+    const pendingFetchesById = pendingFetchesByTypeName.get(typeName);
 
-    Object.keys(pendingFetchesById).forEach(id => {
-      const pendingFetch = pendingFetchesById[id];
-
+    pendingFetchesById?.forEach((pendingFetch, id) => {
       if (pendingFetch) {
         pendingFetch.rejects.forEach(reject => reject(reason));
-        delete pendingFetchesByTypeName[typeName][id];
+        pendingFetchesById.delete(id);
       }
     });
   }
@@ -95,22 +93,22 @@ export default class RequestDispatcher {
   schedulePurgePendingFetches(typeName) {
     const debounceTimeoutsByTypeName = getPrivateProp(this, 'debounceTimeoutsByTypeName');
 
-    clearTimeout(debounceTimeoutsByTypeName[typeName]);
+    clearTimeout(debounceTimeoutsByTypeName.get(typeName));
 
-    debounceTimeoutsByTypeName[typeName] = setTimeout(() => {
+    debounceTimeoutsByTypeName.set(typeName, setTimeout(() => {
       this.purgePendingFetches(typeName);
-    }, FETCH_DEBOUNCE_TIME);
+    }, FETCH_DEBOUNCE_TIME));
   }
 
   purgePendingFetches(typeName) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
-    const pendingFetches = pendingFetchesByTypeName[typeName];
+    const pendingFetches = pendingFetchesByTypeName.get(typeName);
 
     if (!pendingFetches) {
       return;
     }
 
-    const pendingIds = Object.keys(pendingFetches).filter(id => !pendingFetches[id].isLoadingStarted);
+    const pendingIds = [...pendingFetches.keys()].filter(id => !pendingFetches.get(id).isLoadingStarted);
 
     if (pendingIds.length === 0) {
       return;
@@ -128,16 +126,16 @@ export default class RequestDispatcher {
 
   purgePendingChunk(typeName, ids) {
     const pendingFetchesByTypeName = getPrivateProp(this, 'pendingFetchesByTypeName');
-    const pendingFetches = pendingFetchesByTypeName[typeName];
+    const pendingFetches = pendingFetchesByTypeName.get(typeName);
 
     let combinedOptions = {};
     const abortedById = new Map();
     const idsBySignal = new Map();
 
     ids.forEach(id => {
-      pendingFetches[id].isLoadingStarted = true;
+      pendingFetches.get(id).isLoadingStarted = true;
 
-      const options = pendingFetches[id].options;
+      const options = pendingFetches.get(id).options;
 
       options.forEach(opts => {
         if (opts) {

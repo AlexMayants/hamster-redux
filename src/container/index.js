@@ -7,22 +7,22 @@ import Transform, { IdCapableTransform, NumberTransform, StringTransform, Boolea
 const PRIVATE_PROPS = new WeakMap();
 
 function initPrivateProps(obj) {
-  PRIVATE_PROPS.set(obj, {});
+  PRIVATE_PROPS.set(obj, new Map());
 }
 
 function getPrivateProp(obj, name) {
-  return PRIVATE_PROPS.get(obj)[name];
+  return PRIVATE_PROPS.get(obj).get(name);
 }
 
 function setPrivateProp(obj, name, value) {
-  PRIVATE_PROPS.get(obj)[name] = value;
+  PRIVATE_PROPS.get(obj).set(name, value);
 }
 
 export default class Container {
   constructor() {
     initPrivateProps(this);
 
-    setPrivateProp(this, 'registry', {});
+    setPrivateProp(this, 'registry', new Map());
 
     this.initDefaults();
   }
@@ -42,15 +42,15 @@ export default class Container {
 
 
   registerFactory(name, Factory) {
-    getPrivateProp(this, 'registry')[name] = new Factory(this);
+    getPrivateProp(this, 'registry').set(name, new Factory(this));
   }
 
   registerValue(name, instance) {
-    getPrivateProp(this, 'registry')[name] = instance;
+    getPrivateProp(this, 'registry').set(name, instance);
   }
 
   get(name) {
-    return getPrivateProp(this, 'registry')[name] ?? null;
+    return getPrivateProp(this, 'registry').get(name) ?? null;
   }
 
 
