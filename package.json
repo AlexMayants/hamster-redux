@@ -1,6 +1,6 @@
 {
   "name": "hamster-redux",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Entity manager backed by redux",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -15,7 +15,7 @@
     "url": "git@github.com:AlexMayants/hamster-redux.git"
   },
   "peerDependencies": {
-    "redux": "^3.6.0 || ^4.0.0"
+    "redux": "^3.6.0 || ^4.0.0 || ^5.0.0"
   },
   "keywords": [
     "redux",
